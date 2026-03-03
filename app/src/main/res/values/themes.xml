@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.App" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Wir nutzen Material3, damit die AppBar korrekt aussieht -->
+    <style name="Theme.App" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Hier kannst du Farben anpassen -->
+    </style>
 </resources>

@@ -1,26 +1,22 @@
 package com.example.app
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.ui.Modifier
-import com.example.app.ui.ColorPickerScreen
-import com.example.app.ui.theme.AppTheme
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent {
-            AppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    ColorPickerScreen(modifier = Modifier.padding(innerPadding))
-                }
-            }
+        
+        // Hier wird die XML-Datei als Layout gesetzt
+        setContentView(R.layout.activity_main)
+
+        // Beispiel: Zugriff auf den FAB aus der XML
+        val fab = findViewById<FloatingActionButton>(R.id.floatingActionButton)
+        fab.setOnClickListener {
+            // Hier könntest du später den ColorPicker aufrufen
         }
     }
 }

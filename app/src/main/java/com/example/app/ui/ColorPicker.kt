@@ -4,8 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,29 +20,54 @@ import androidx.compose.ui.unit.sp
 import com.github.skydoves.colorpicker.compose.*
 
 @Composable
-fun ColorPickerScreen(modifier: Modifier = Modifier) {
+fun ColorPickerDialogContent(
+    initialColor: Int,
+    onColorSelected: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
     val controller = rememberColorPickerController()
-    var selectedColor by remember { mutableStateOf(Color.White) }
-    var hexInput by remember { mutableStateOf(colorToHex(Color.White)) }
+    var selectedColor by remember { mutableStateOf(Color(initialColor)) }
+    var hexInput by remember { mutableStateOf(colorToHex(Color(initialColor))) }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ColorPreview(selectedColor)
-        Spacer(modifier = Modifier.height(24.dp))
-        ColorControls(
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(selectedColor)
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        HsvColorPicker(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp),
             controller = controller,
-            onColorChanged = { color ->
-                selectedColor = color
-                val newHex = colorToHex(color)
+            initialColor = Color(initialColor),
+            onColorChanged = { colorEnvelope ->
+                selectedColor = colorEnvelope.color
+                val newHex = colorToHex(colorEnvelope.color)
                 if (hexInput != newHex) hexInput = newHex
             }
         )
-        Spacer(modifier = Modifier.height(24.dp))
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        BrightnessSlider(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(35.dp),
+            controller = controller
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         HexInputField(
             hexValue = hexInput,
             onValueChange = { newHex ->
@@ -57,42 +81,23 @@ fun ColorPickerScreen(modifier: Modifier = Modifier) {
                 }
             }
         )
-    }
-}
 
-@Composable
-fun ColorPreview(color: Color) {
-    Box(
-        modifier = Modifier
-            .size(80.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(color)
-    )
-}
+        Spacer(modifier = Modifier.height(24.dp))
 
-@Composable
-fun ColorControls(
-    controller: ColorPickerController,
-    onColorChanged: (Color) -> Unit
-) {
-    Column {
-        HsvColorPicker(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp),
-            controller = controller,
-            onColorChanged = { colorEnvelope ->
-                onColorChanged(colorEnvelope.color)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Button(onClick = onDismiss) {
+                Text("Abbrechen")
             }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        BrightnessSlider(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(35.dp)
-                .clip(RoundedCornerShape(8.dp)),
-            controller = controller
-        )
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { 
+                onColorSelected(selectedColor.toArgb()) 
+            }) {
+                Text("OK")
+            }
+        }
     }
 }
 
@@ -107,13 +112,19 @@ fun HexInputField(
             val filtered = newValue.uppercase().filter { it in "0123456789ABCDEF" }.take(6)
             onValueChange(filtered)
         },
-        label = { Text("Hex Code") },
-        prefix = { Text("#") },
+        label = { Text("Hex Code", color = Color.White) },
+        prefix = { Text("#", color = Color.White) },
         singleLine = true,
         textStyle = TextStyle(
+            color = Color.White,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.White,
+            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+            cursorColor = Color.White
         ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
         modifier = Modifier.width(160.dp)

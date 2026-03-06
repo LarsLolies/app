@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:descendantFocusability="blocksDescendants"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:padding="16dp">
@@ -13,7 +14,8 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:text="LED Name"
-        android:textAppearance="?attr/textAppearanceTitleMedium" />
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textSize="24sp" />
 
     <View
         android:id="@+id/ledColorCircle"
@@ -26,6 +28,8 @@
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/ledSwitch"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:focusableInTouchMode="false" />
 
 </LinearLayout>

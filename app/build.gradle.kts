@@ -48,6 +48,13 @@ dependencies {
     implementation(libs.material)
     implementation(libs.skydoves.colorpicker.compose)
     implementation(libs.gson)
+    
+    // Ktor Dependencies
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.gson)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

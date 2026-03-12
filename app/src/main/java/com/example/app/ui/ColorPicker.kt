@@ -1,5 +1,8 @@
 package com.example.app.ui
 
+import android.content.Context
+import android.view.WindowManager
+import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,13 +14,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.app.LED_item
 import com.github.skydoves.colorpicker.compose.*
+
+fun showColorPickerDialog(
+    context: Context,
+    item: LED_item,
+    onColorUpdated: () -> Unit
+) {
+    val composeView = ComposeView(context)
+    val dialog = AlertDialog.Builder(context)
+        .setView(composeView)
+        .create()
+
+    composeView.setContent {
+        ColorPickerDialogContent(
+            initialColor = item.color,
+            onColorSelected = { newColor ->
+                item.color = newColor
+                onColorUpdated()
+                dialog.dismiss()
+            },
+            onDismiss = { dialog.dismiss() }
+        )
+    }
+
+    dialog.show()
+
+    // Erlaubt der Tastatur zu erscheinen
+    dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+    dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+}
 
 @Composable
 fun ColorPickerDialogContent(
@@ -32,6 +66,7 @@ fun ColorPickerDialogContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(Color(0xFF2C2C2C))
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

@@ -4,24 +4,25 @@ import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ListView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.ui.platform.ComposeView
-import com.example.app.ui.ColorPickerDialogContent
+import androidx.lifecycle.lifecycleScope
+import com.example.app.ui.showColorPickerDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var ledList: MutableList<LED_item>
     private lateinit var adapter: LEDAdapter
     private val gson = Gson()
+    private val apiService = LedApiService()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +32,27 @@ class MainActivity : AppCompatActivity() {
         ledList = loadData()
         setupListView()
         setupFAB()
+        
+        // NEU: Beim Start alle LED-Zustände von der Hardware abfragen
+        refreshAllStrips()
+    }
+
+    private fun refreshAllStrips() {
+        lifecycleScope.launch {
+            for (item in ledList) {
+                val response = apiService.fetchLedState(item)
+                response?.let {
+                    item.setState(it.state == "on")
+                    try {
+                        item.setColor(Color.parseColor(it.hex))
+                    } catch (e: Exception) {
+                        // Falls hex ungültig ist, nichts tun
+                    }
+                }
+            }
+            adapter.notifyDataSetChanged()
+            saveData() // Aktualisierte Zustände auch lokal sichern
+        }
     }
 
     private fun setupListView() {
@@ -38,8 +60,14 @@ class MainActivity : AppCompatActivity() {
         adapter = LEDAdapter(
             context = this,
             ledItems = ledList,
-            onColorClick = { item -> showColorPickerDialog(item) },
-            onSwitchChanged = { updateUIAndSave() }
+            onColorClick = { item -> 
+                showColorPickerDialog(this, item) { 
+                    updateUIAndSave(item) 
+                } 
+            },
+            onSwitchChanged = { item -> 
+                updateUIAndSave(item)
+            }
         )
         listView.adapter = adapter
         listView.setOnItemLongClickListener { _, _, position, _ ->
@@ -52,31 +80,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<FloatingActionButton>(R.id.floatingActionButton).setOnClickListener {
             showLedSettingsDialog()
         }
-    }
-
-    private fun showColorPickerDialog(item: LED_item) {
-        val composeView = ComposeView(this)
-        val dialog = AlertDialog.Builder(this)
-            .setView(composeView)
-            .create()
-
-        composeView.setContent {
-            ColorPickerDialogContent(
-                initialColor = item.color,
-                onColorSelected = { newColor: Int ->
-                    item.color = newColor
-                    updateUIAndSave()
-                    dialog.dismiss()
-                },
-                onDismiss = { dialog.dismiss() }
-            )
-        }
-
-        dialog.show()
-        
-        // FIX: Dies erlaubt der Tastatur, im Compose-Dialog zu erscheinen
-        dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
     }
 
     private fun showLedSettingsDialog(item: LED_item? = null, position: Int = -1) {
@@ -129,14 +132,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (item == null) {
-            ledList.add(LED_item(name, false, Color.WHITE, api, pin))
+            val newItem = LED_item(name, false, android.graphics.Color.WHITE, api, pin)
+            ledList.add(newItem)
+            updateUIAndSave(newItem)
         } else {
             item.name = name
             item.apiAddress = api
             item.gpioPin = pin
+            updateUIAndSave(item)
         }
 
-        updateUIAndSave()
         return true
     }
 
@@ -147,7 +152,8 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("Löschen") { _, _ ->
                 if (position != -1) {
                     ledList.removeAt(position)
-                    updateUIAndSave()
+                    adapter.notifyDataSetChanged()
+                    saveData()
                     onDeleted()
                 }
             }
@@ -155,9 +161,19 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun updateUIAndSave() {
+    private fun updateUIAndSave(item: LED_item) {
         adapter.notifyDataSetChanged()
         saveData()
+        
+        // API-Update asynchron senden
+        lifecycleScope.launch {
+            apiService.sendLedUpdate(item)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        apiService.close()
     }
 
     override fun onPause() {

@@ -12,7 +12,7 @@ class LEDAdapter(
     context: Context,
     private val ledItems: List<LED_item>,
     private val onColorClick: (LED_item) -> Unit,
-    private val onSwitchChanged: () -> Unit
+    private val onSwitchChanged: (LED_item) -> Unit
 ) : ArrayAdapter<LED_item>(context, R.layout.list_item_led, ledItems) {
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -37,7 +37,7 @@ class LEDAdapter(
         ledSwitch.isChecked = item.isState
         ledSwitch.setOnCheckedChangeListener { _, isChecked ->
             item.isState = isChecked
-            onSwitchChanged()
+            onSwitchChanged(item)
         }
         
         return view

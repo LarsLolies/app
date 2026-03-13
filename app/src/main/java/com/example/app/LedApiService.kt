@@ -32,18 +32,36 @@ class LedApiService {
      */
     suspend fun sendLedUpdate(item: LED_item) {
         try {
-            val baseUrl = if (item.apiAddress.startsWith("http")) item.apiAddress else "http://${item.apiAddress}"
-            val url = "$baseUrl/api/strip/${item.gpioPin}/status"
-            
+
+            val baseUrl = if (item.apiAddress.startsWith("http"))
+                item.apiAddress
+            else
+                "http://${item.apiAddress}"
+
+            val url = "$baseUrl/api/strip/${item.gpioPin}"
+
+            val color = item.getColor()
+
+            val r = (color shr 16) and 0xFF
+            val g = (color shr 8) and 0xFF
+            val b = color and 0xFF
+
+            val state = if (item.isState()) "on" else "off"
+
             val response = client.post(url) {
                 contentType(ContentType.Application.Json)
-                setBody(mapOf(
-                    "strip" to (item.gpioPin.toIntOrNull() ?: 0),
-                    "state" to if (item.isState()) "on" else "off",
-                    "hex" to String.format("#%06X", (0xFFFFFF and item.getColor()))
-                ))
+                setBody(
+                    mapOf(
+                        "state" to state,
+                        "r" to r,
+                        "g" to g,
+                        "b" to b
+                    )
+                )
             }
+
             Log.d("LedApiService", "Update gesendet an $url: ${response.status}")
+
         } catch (e: Exception) {
             Log.e("LedApiService", "Fehler beim Senden: ${e.message}")
         }

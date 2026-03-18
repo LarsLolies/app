@@ -32,19 +32,14 @@ class LedApiService {
      */
     suspend fun sendLedUpdate(item: LED_item) {
         try {
-
-            val baseUrl = if (item.apiAddress.startsWith("http"))
-                item.apiAddress
-            else
-                "http://${item.apiAddress}"
-
+            val baseUrl = if (item.apiAddress.startsWith("http")) item.apiAddress else "http://${item.apiAddress}"
             val url = "$baseUrl/api/strip/${item.gpioPin}"
 
             val color = item.getColor()
-
             val r = (color shr 16) and 0xFF
             val g = (color shr 8) and 0xFF
             val b = color and 0xFF
+            val hex = String.format("#%06X", (0xFFFFFF and color))
 
             val state = if (item.isState()) "on" else "off"
 
@@ -52,10 +47,12 @@ class LedApiService {
                 contentType(ContentType.Application.Json)
                 setBody(
                     mapOf(
+                        "pin" to (item.gpioPin.toIntOrNull() ?: 0), // Strip-ID muss in den Body!
                         "state" to state,
                         "r" to r,
                         "g" to g,
-                        "b" to b
+                        "b" to b,
+                        "hex" to hex
                     )
                 )
             }

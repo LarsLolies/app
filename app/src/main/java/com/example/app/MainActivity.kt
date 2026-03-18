@@ -1,6 +1,7 @@
 package com.example.app
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -69,6 +70,12 @@ class MainActivity : AppCompatActivity() {
             },
             onSwitchChanged = { item -> 
                 updateUIAndSave(item)
+            },
+            onPlayClick = { item ->
+                // Öffnet die AnimationSelectActivity
+                val intent = Intent(this, AnimationSelectActivity::class.java)
+                intent.putExtra("LED_ITEM", item) // Optional: LED Infos mitgeben
+                startActivity(intent)
             }
         )
         listView.adapter = adapter

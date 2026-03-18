@@ -26,6 +26,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".AnimationSelectActivity"
+            android:exported="false"
+            android:label="Animations"
+            android:theme="@style/Theme.App" />
     </application>
 
 </manifest>

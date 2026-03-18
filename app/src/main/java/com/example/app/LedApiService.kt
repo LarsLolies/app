@@ -29,26 +29,30 @@ class LedApiService {
 
     /**
      * Sendet ein Update (Farbe/Status) an einen Strip
-     * URL-Format: POST /api/strip/{id}
      */
     suspend fun sendLedUpdate(item: LED_item) {
         val baseUrl = if (item.getApiAddress().startsWith("http")) item.getApiAddress() else "http://${item.getApiAddress()}"
-        // POST an /api/strip/0 (ohne /status!)
         val url = "$baseUrl/api/strip/${item.getStripId()}"
         
         try {
-            val color = item.getColor()
-            val r = (color shr 16) and 0xFF
-            val g = (color shr 8) and 0xFF
-            val b = color and 0xFF
-            val hex = String.format("#%06X", (0xFFFFFF and color))
+            val isOn = item.isState()
+            val stateToSend = if (isOn) "on" else "off"
+            
+            // Fix: Wenn Status "off", senden wir 0 für die Farben, 
+            // damit der Python-Server den Status korrekt erkennt.
+            val r = if (isOn) (item.getColor() shr 16 and 0xFF) else 0
+            val g = if (isOn) (item.getColor() shr 8 and 0xFF) else 0
+            val b = if (isOn) (item.getColor() and 0xFF) else 0
+            val hex = if (isOn) String.format("#%06X", (0xFFFFFF and item.getColor())) else "#000000"
+
+            Log.d("LedApiService", "Sende an $url -> State: $stateToSend, RGB: ($r,$g,$b)")
 
             val response = client.post(url) {
                 contentType(ContentType.Application.Json)
                 setBody(
                     mapOf(
-                        "strip" to (item.getStripId().toIntOrNull() ?: 0),
-
+                        "strip" to (item.getStripId().toIntOrNull() ?: -1),
+                        "state" to stateToSend,
                         "r" to r,
                         "g" to g,
                         "b" to b,
@@ -57,16 +61,15 @@ class LedApiService {
                 )
             }
 
-            Log.d("LedApiService", "POST erfolgreich an $url: ${response.status}")
+            Log.d("LedApiService", "POST erfolgreich: ${response.status}")
 
         } catch (e: Exception) {
-            Log.e("LedApiService", "Fehler beim POST an $url: ${e.message}")
+            Log.e("LedApiService", "Fehler beim POST: ${e.message}")
         }
     }
 
     /**
-     * Fragt den Status ab
-     * URL-Format: GET /api/strip/{id}/status
+     * Fragt den aktuellen Status ab
      */
     suspend fun fetchLedState(item: LED_item): LedStateResponse? {
         val baseUrl = if (item.getApiAddress().startsWith("http")) item.getApiAddress() else "http://${item.getApiAddress()}"
@@ -74,10 +77,10 @@ class LedApiService {
         
         return try {
             val response: LedStateResponse = client.get(url).body()
-            Log.d("LedApiService", "GET erfolgreich von $url: ${response.state}")
+            Log.d("LedApiService", "GET erfolgreich: ${response.state}")
             response
         } catch (e: Exception) {
-            Log.e("LedApiService", "Fehler beim GET von $url: ${e.message}")
+            Log.e("LedApiService", "Fehler beim GET: ${e.message}")
             null
         }
     }

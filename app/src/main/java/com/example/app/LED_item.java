@@ -7,14 +7,14 @@ public class LED_item implements Serializable {
     private boolean state;
     private int color;
     private String apiAddress;
-    private String gpioPin;
+    private String stripId;
 
-    public LED_item(String name, boolean state, int color, String apiAddress, String gpioPin) {
+    public LED_item(String name, boolean state, int color, String apiAddress, String stripId) {
         this.name = name;
         this.state = state;
         this.color = color;
         this.apiAddress = apiAddress;
-        this.gpioPin = gpioPin;
+        this.stripId = stripId;
     }
 
     public String getName() {
@@ -49,11 +49,11 @@ public class LED_item implements Serializable {
         this.apiAddress = apiAddress;
     }
 
-    public String getGpioPin() {
-        return gpioPin;
+    public String getStripId() {
+        return stripId;
     }
 
-    public void setGpioPin(String gpioPin) {
-        this.gpioPin = gpioPin;
+    public void setStripId(String stripId) {
+        this.stripId = stripId;
     }
 }

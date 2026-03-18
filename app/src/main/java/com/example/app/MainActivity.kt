@@ -32,26 +32,28 @@ class MainActivity : AppCompatActivity() {
         ledList = loadData()
         setupListView()
         setupFAB()
-        
-        // NEU: Beim Start alle LED-Zustände von der Hardware abfragen
+    }
+
+    override fun onResume() {
+        super.onResume()
         refreshAllStrips()
     }
 
     private fun refreshAllStrips() {
         lifecycleScope.launch {
             for (item in ledList) {
-                val response = apiService.fetchLedState(item)
-                response?.let {
-                    item.setState(it.state == "on")
-                    try {
-                        item.setColor(Color.parseColor(it.hex))
-                    } catch (e: Exception) {
-                        // Falls hex ungültig ist, nichts tun
+                launch {
+                    val response = apiService.fetchLedState(item)
+                    response?.let {
+                        item.setState(it.state == "on")
+                        try {
+                            item.setColor(Color.parseColor(it.hex))
+                        } catch (e: Exception) { }
+                        
+                        runOnUiThread { adapter.notifyDataSetChanged() }
                     }
                 }
             }
-            adapter.notifyDataSetChanged()
-            saveData() // Aktualisierte Zustände auch lokal sichern
         }
     }
 
@@ -95,21 +97,21 @@ class MainActivity : AppCompatActivity() {
     private fun setupDialogLogic(view: View, dialog: AlertDialog, item: LED_item?, position: Int) {
         val nameET = view.findViewById<EditText>(R.id.nameEditText)
         val apiET = view.findViewById<EditText>(R.id.apiEditText)
-        val pinET = view.findViewById<EditText>(R.id.pinEditText)
+        val stripIdET = view.findViewById<EditText>(R.id.stripIdEditText)
         val saveBtn = view.findViewById<Button>(R.id.saveButton)
         val deleteBtn = view.findViewById<Button>(R.id.delete)
 
         item?.let {
-            nameET.setText(it.name)
-            apiET.setText(it.apiAddress)
-            pinET.setText(it.gpioPin)
+            nameET.setText(it.getName())
+            apiET.setText(it.getApiAddress())
+            stripIdET.setText(it.getStripId())
             deleteBtn.visibility = View.VISIBLE
         } ?: run {
             deleteBtn.visibility = View.GONE
         }
 
         saveBtn.setOnClickListener {
-            if (validateAndSave(nameET, apiET, pinET, item)) {
+            if (validateAndSave(nameET, apiET, stripIdET, item)) {
                 dialog.dismiss()
             }
         }
@@ -121,10 +123,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun validateAndSave(nameET: EditText, apiET: EditText, pinET: EditText, item: LED_item?): Boolean {
+    private fun validateAndSave(nameET: EditText, apiET: EditText, stripIdET: EditText, item: LED_item?): Boolean {
         val name = nameET.text.toString().trim()
         val api = apiET.text.toString().trim()
-        val pin = pinET.text.toString().trim()
+        val stripId = stripIdET.text.toString().trim()
 
         if (name.isEmpty()) {
             nameET.error = "Name wird benötigt"
@@ -132,13 +134,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (item == null) {
-            val newItem = LED_item(name, false, android.graphics.Color.WHITE, api, pin)
+            val newItem = LED_item(name, false, Color.WHITE, api, stripId)
             ledList.add(newItem)
             updateUIAndSave(newItem)
         } else {
-            item.name = name
-            item.apiAddress = api
-            item.gpioPin = pin
+            item.setName(name)
+            item.setApiAddress(api)
+            item.setStripId(stripId)
             updateUIAndSave(item)
         }
 
@@ -148,7 +150,7 @@ class MainActivity : AppCompatActivity() {
     private fun confirmDeletion(item: LED_item?, position: Int, onDeleted: () -> Unit) {
         AlertDialog.Builder(this)
             .setTitle("LED löschen")
-            .setMessage("Möchtest du '${item?.name}' wirklich löschen?")
+            .setMessage("Möchtest du '${item?.getName()}' wirklich löschen?")
             .setPositiveButton("Löschen") { _, _ ->
                 if (position != -1) {
                     ledList.removeAt(position)
@@ -165,7 +167,6 @@ class MainActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
         saveData()
         
-        // API-Update asynchron senden
         lifecycleScope.launch {
             apiService.sendLedUpdate(item)
         }

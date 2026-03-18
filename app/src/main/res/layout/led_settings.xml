@@ -38,16 +38,17 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/pinInputLayout"
+        android:id="@+id/stripIdInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="GPIO PIN (z.B. 17)">
+        android:hint="Strip ID (z.B. 0, 1, 2)">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/pinEditText"
+            android:id="@+id/stripIdEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="48dp"
+            android:inputType="number"
             android:textSize="24sp" />
     </com.google.android.material.textfield.TextInputLayout>
 

@@ -37,8 +37,8 @@ class LedApiService {
         try {
             val isOn = item.isState()
             val stateToSend = if (isOn) "on" else "off"
-            
-            // Fix: Wenn Status "off", senden wir 0 für die Farben, 
+
+            // Fix: Wenn Status "off", senden wir 0 für die Farben,
             // damit der Python-Server den Status korrekt erkennt.
             val r = if (isOn) (item.getColor() shr 16 and 0xFF) else 0
             val g = if (isOn) (item.getColor() shr 8 and 0xFF) else 0
@@ -74,7 +74,7 @@ class LedApiService {
     suspend fun fetchLedState(item: LED_item): LedStateResponse? {
         val baseUrl = if (item.getApiAddress().startsWith("http")) item.getApiAddress() else "http://${item.getApiAddress()}"
         val url = "$baseUrl/api/strip/${item.getStripId()}/status"
-        
+
         return try {
             val response: LedStateResponse = client.get(url).body()
             Log.d("LedApiService", "GET erfolgreich: ${response.state}")

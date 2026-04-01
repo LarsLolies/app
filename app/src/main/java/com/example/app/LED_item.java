@@ -8,6 +8,7 @@ public class LED_item implements Serializable {
     private int color;
     private String apiAddress;
     private String stripId;
+    private boolean rainbow;
 
     public LED_item(String name, boolean state, int color, String apiAddress, String stripId) {
         this.name = name;
@@ -15,6 +16,7 @@ public class LED_item implements Serializable {
         this.color = color;
         this.apiAddress = apiAddress;
         this.stripId = stripId;
+        this.rainbow = false;
     }
 
     public String getName() {
@@ -55,5 +57,13 @@ public class LED_item implements Serializable {
 
     public void setStripId(String stripId) {
         this.stripId = stripId;
+    }
+
+    public boolean isRainbow() {
+        return rainbow;
+    }
+
+    public void setRainbow(boolean rainbow) {
+        this.rainbow = rainbow;
     }
 }

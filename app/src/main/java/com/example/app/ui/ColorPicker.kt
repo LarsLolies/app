@@ -36,9 +36,11 @@ fun showColorPickerDialog(
 
     composeView.setContent {
         ColorPickerDialogContent(
-            initialColor = item.color,
-            onColorSelected = { newColor ->
-                item.color = newColor
+            initialColor = item.getColor(),
+            initialRainbow = item.isRainbow(),
+            onColorSelected = { newColor, isRainbow ->
+                item.setColor(newColor)
+                item.setRainbow(isRainbow)
                 onColorUpdated()
                 dialog.dismiss()
             },
@@ -56,12 +58,14 @@ fun showColorPickerDialog(
 @Composable
 fun ColorPickerDialogContent(
     initialColor: Int,
-    onColorSelected: (Int) -> Unit,
+    initialRainbow: Boolean,
+    onColorSelected: (Int, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val controller = rememberColorPickerController()
     var selectedColor by remember { mutableStateOf(Color(initialColor)) }
     var hexInput by remember { mutableStateOf(colorToHex(Color(initialColor))) }
+    var isRainbow by remember { mutableStateOf(initialRainbow) }
 
     Column(
         modifier = Modifier
@@ -117,18 +121,39 @@ fun ColorPickerDialogContent(
             }
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Rainbow",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Switch(
+                checked = isRainbow,
+                onCheckedChange = { isRainbow = it }
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
-            Button(onClick = onDismiss) {
-                Text("Abbrechen")
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen", color = Color.White)
             }
             Spacer(modifier = Modifier.width(8.dp))
             Button(onClick = { 
-                onColorSelected(selectedColor.toArgb()) 
+                onColorSelected(selectedColor.toArgb(), isRainbow) 
             }) {
                 Text("OK")
             }
@@ -159,7 +184,9 @@ fun HexInputField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.White,
             unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-            cursorColor = Color.White
+            cursorColor = Color.White,
+            focusedLabelColor = Color.White,
+            unfocusedLabelColor = Color.White
         ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
         modifier = Modifier.width(160.dp)

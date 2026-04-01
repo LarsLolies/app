@@ -9,14 +9,14 @@ import io.ktor.http.*
 import io.ktor.serialization.gson.*
 import android.util.Log
 
-// Datenklasse für die API-Antwort
 data class LedStateResponse(
     val strip: Int,
-    val state: String, // "on" oder "off"
+    val state: String,
     val r: Int,
     val g: Int,
     val b: Int,
-    val hex: String
+    val hex: String,
+    val animations: List<String> = emptyList()
 )
 
 class LedApiService {
@@ -27,65 +27,72 @@ class LedApiService {
         }
     }
 
-    /**
-     * Sendet ein Update (Farbe/Status) an einen Strip
-     */
     suspend fun sendLedUpdate(item: LED_item) {
         val baseUrl = if (item.getApiAddress().startsWith("http")) item.getApiAddress() else "http://${item.getApiAddress()}"
-        val url = "$baseUrl/api/strip/${item.getStripId()}"
         
         try {
             val isOn = item.isState()
-            val stateToSend = if (isOn) "on" else "off"
+            val stateUrl = "$baseUrl/api/strip/${item.getStripId()}"
             
-            // Fix: Wenn Status "off", senden wir 0 für die Farben, 
-            // damit der Python-Server den Status korrekt erkennt.
-            val r = if (isOn) (item.getColor() shr 16 and 0xFF) else 0
-            val g = if (isOn) (item.getColor() shr 8 and 0xFF) else 0
-            val b = if (isOn) (item.getColor() and 0xFF) else 0
-            val hex = if (isOn) String.format("#%06X", (0xFFFFFF and item.getColor())) else "#000000"
+            // 1. Wenn die LED AUS geschaltet wird: Alles stoppen und auf 0 setzen
+            if (!isOn) {
+                // Erst Animationen löschen, damit der Microcontroller nicht wieder einschaltet
+                val clearUrl = "$baseUrl/api/strip/${item.getStripId()}/animation/clear"
+                client.post(clearUrl) { contentType(ContentType.Application.Json) }
 
-            Log.d("LedApiService", "Sende an $url -> State: $stateToSend, RGB: ($r,$g,$b)")
-
-            val response = client.post(url) {
-                contentType(ContentType.Application.Json)
-                setBody(
-                    mapOf(
+                // Dann Status auf OFF und Farben auf 0
+                client.post(stateUrl) {
+                    contentType(ContentType.Application.Json)
+                    setBody(mapOf(
                         "strip" to (item.getStripId().toIntOrNull() ?: -1),
-                        "state" to stateToSend,
-                        "r" to r,
-                        "g" to g,
-                        "b" to b,
-                        "hex" to hex
-                    )
-                )
+                        "state" to "off",
+                        "r" to 0, "g" to 0, "b" to 0
+                    ))
+                }
+                Log.d("LedApiService", "LED komplett ausgeschaltet (inkl. Animationen)")
+                return // Beenden, da wir nicht mehr prüfen müssen ob Rainbow an ist
             }
 
-            Log.d("LedApiService", "POST erfolgreich: ${response.status}")
+            // 2. Wenn die LED AN ist: Farbe und Animationen senden
+            client.post(stateUrl) {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf(
+                    "strip" to (item.getStripId().toIntOrNull() ?: -1),
+                    "state" to "on",
+                    "r" to (item.getColor() shr 16 and 0xFF),
+                    "g" to (item.getColor() shr 8 and 0xFF),
+                    "b" to (item.getColor() and 0xFF)
+                ))
+            }
+
+            if (item.isRainbow()) {
+                val animAddUrl = "$baseUrl/api/strip/${item.getStripId()}/animation/add"
+                client.post(animAddUrl) {
+                    contentType(ContentType.Application.Json)
+                    setBody(mapOf("animation" to "rainbow"))
+                }
+            } else {
+                val animRemoveUrl = "$baseUrl/api/strip/${item.getStripId()}/animation/remove"
+                client.post(animRemoveUrl) {
+                    contentType(ContentType.Application.Json)
+                    setBody(mapOf("animation" to "rainbow"))
+                }
+            }
 
         } catch (e: Exception) {
-            Log.e("LedApiService", "Fehler beim POST: ${e.message}")
+            Log.e("LedApiService", "Fehler beim API-Update: ${e.message}")
         }
     }
 
-    /**
-     * Fragt den aktuellen Status ab
-     */
     suspend fun fetchLedState(item: LED_item): LedStateResponse? {
         val baseUrl = if (item.getApiAddress().startsWith("http")) item.getApiAddress() else "http://${item.getApiAddress()}"
         val url = "$baseUrl/api/strip/${item.getStripId()}/status"
-        
         return try {
-            val response: LedStateResponse = client.get(url).body()
-            Log.d("LedApiService", "GET erfolgreich: ${response.state}")
-            response
+            client.get(url).body()
         } catch (e: Exception) {
-            Log.e("LedApiService", "Fehler beim GET: ${e.message}")
             null
         }
     }
 
-    fun close() {
-        client.close()
-    }
+    fun close() = client.close()
 }

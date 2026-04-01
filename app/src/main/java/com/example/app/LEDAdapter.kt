@@ -1,6 +1,7 @@
 package com.example.app
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,19 +25,25 @@ class LEDAdapter(
         val colorCircle = view.findViewById<View>(R.id.ledColorCircle)
         val ledSwitch = view.findViewById<MaterialSwitch>(R.id.ledSwitch)
         
-        nameTextView.text = item.name
-        colorCircle.backgroundTintList = android.content.res.ColorStateList.valueOf(item.color)
+        nameTextView.text = item.getName()
+
+        // Rainbow Logik für den Indicator
+        if (item.isRainbow()) {
+            colorCircle.setBackgroundResource(R.drawable.led_rainbow_indicator)
+            colorCircle.backgroundTintList = null // Wichtig: Tint entfernen, sonst überdeckt er den Regenbogen
+        } else {
+            colorCircle.setBackgroundResource(R.drawable.led_indicator)
+            colorCircle.backgroundTintList = ColorStateList.valueOf(item.getColor())
+        }
         
-        // Klick-Listener für den Farbkreis
         colorCircle.setOnClickListener {
             onColorClick(item)
         }
         
-        // Switch-Logik
         ledSwitch.setOnCheckedChangeListener(null)
         ledSwitch.isChecked = item.isState
         ledSwitch.setOnCheckedChangeListener { _, isChecked ->
-            item.isState = isChecked
+            item.setState(isChecked)
             onSwitchChanged(item)
         }
         
